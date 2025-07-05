@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式投资组合分析 (AI增强深度版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: 应用已从页签式布局重构为单页滚动式仪表盘，所有模块默认展开，以满足用户对信息完整性和即时性的要求。结构依次为：1. **概览 (Overview)**: 新增投资组合健康分，提供更高阶的即时洞察。2. **持仓详解 (Details)**: 默认展开所有基金的详细信息（包括新增的规模、成立日期），并保留AI摘要功能。3. **风险与机遇 (SWOT)**: 保持网格化布局，便于快速识别。4. **优化建议 (Actions)**: 默认展开所有建议，并新增优先级标签，同时保留AI邮件生成功能。此结构旨在打造一个信息密度更高、无需交互即可全面了解的深度分析报告。 -->
+    <!-- Visualization & Content Choices: 1. **资产配置/管理人集中度**: Chart.js图表保持不变，提供核心视觉参考。2. **投资组合健康分**: 新增的静态卡片，用颜色和文字提供定性评估，丰富了概览维度。3. **基金列表**: 移除折叠交互，所有基金详情默认展示，增加了资产规模、成立日期等静态数据，使信息更完整。AI摘要按钮作为按需深入的功能被保留。4. **SWOT分析**: 保持静态网格布局。5. **建议**: 移除折叠交互，所有建议默认展示，并用不同颜色的标签标示优先级，增强了可操作性。AI邮件生成功能作为高级功能保留。所有图表仍使用Chart.js(Canvas)。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #F8F7F4;
+            color: #3D4451;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 380px;
+            }
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .section-divider {
+            border-bottom: 2px dashed #D1D5DB;
+            margin-top: 3rem;
+            margin-bottom: 3rem;
+        }
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .gemini-output {
+            background-color: #f9fafb;
+            border-left: 3px solid #3498db;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto px-4 py-8">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">客户投资组合深度分析报告 (AI增强版)</h1>
+            <p class="mt-2 text-lg text-gray-600">总资产净值: <span class="font-semibold text-xl text-amber-700">877.45 万元</span></p>
+        </header>
+
+        <main>
+            <!-- 概览 Section -->
+            <section id="overview">
+                <div class="text-center mb-10">
+                    <h2 class="text-2xl font-bold mb-2">一、投资组合概览与诊断</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">本部分提供投资组合的宏观视角，揭示其核心的战略倾向与潜在风险。组合呈现高度保守姿态，但也因此暴露了显著的集中度风险和机会成本。</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mb-8">
+                    <div class="card p-4 sm:p-6 lg:col-span-1">
+                        <h3 class="text-xl font-semibold mb-4 text-center">资产配置分析</h3>
+                        <div class="chart-container">
+                            <canvas id="assetAllocationChart"></canvas>
+                        </div>
+                         <p class="text-sm text-gray-500 mt-4 text-center">超过70%的资产配置于固定收益和现金等价物，显示出强烈的资本保值倾向，但也牺牲了长期增长潜力。</p>
+                    </div>
+                    <div class="card p-4 sm:p-6 lg:col-span-1">
+                        <h3 class="text-xl font-semibold mb-4 text-center">基金管理人集中度</h3>
+                        <div class="chart-container">
+                            <canvas id="managerConcentrationChart"></canvas>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4 text-center">约28%的资产集中于国海富兰克林基金，带来了单一管理人风险。</p>
+                    </div>
+                    <div class="card p-4 sm:p-6 lg:col-span-1 bg-amber-50 border-amber-200">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-amber-800">投资组合健康分</h3>
+                        <div class="text-center my-10">
+                            <span class="text-7xl font-bold text-amber-600">C+</span>
+                        </div>
+                        <h4 class="font-semibold text-center mb-2">评级理由</h4>
+                        <ul class="space-y-2 text-sm text-gray-700 list-disc list-inside">
+                            <li><strong class="text-green-600">优点:</strong> 流动性强，防御性好。</li>
+                            <li><strong class="text-red-600">缺点:</strong> 资产与管理人过度集中，长期增长潜力不足，通胀风险高。</li>
+                        </ul>
+                         <p class="text-xs text-gray-500 mt-4 text-center">这是一个综合性评级，反映了组合在多元化、风险控制和增长潜力方面的整体表现。</p>
+                    </div>
+                </div>
+                <div class="card p-6">
+                     <h3 class="text-xl font-semibold mb-4">核心洞察</h3>
+                     <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start"><span class="text-amber-600 mr-3 mt-1">⚠️</span><strong>资产配置失衡:</strong> 过高比例的资产（24.5%）配置于低收益的现金及货币市场工具，通胀风险和机会成本高。</li>
+                        <li class="flex items-start"><span class="text-amber-600 mr-3 mt-1">⚠️</span><strong>管理人集中度过高:</strong> 27.9%的资产集中于国海富兰克林基金，其中20.7%由基金经理赵晓东管理，存在显著的风格和决策关联风险。</li>
+                        <li class="flex items-start"><span class="text-amber-600 mr-3 mt-1">⚠️</span><strong>策略连贯性不足:</strong> 组合缺乏统一投资逻辑，更像无意中形成的“杠铃型策略”，而非深思熟虑的战略布局。</li>
+                     </ul>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 持仓详解 Section -->
+            <section id="details">
+                 <div class="text-center mb-10">
+                    <h2 class="text-2xl font-bold mb-2">二、持仓基金深度解析</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">下表详细列出了投资组合中的所有基金及其关键信息。您可以点击“✨ 生成AI摘要”按钮，获得由AI提供的即时分析与展望。</p>
+                </div>
+                <div class="space-y-4" id="fundTableBody">
+                    <!-- JS will populate this -->
+                </div>
+            </section>
+            
+            <div class="section-divider"></div>
+
+            <!-- 风险与机遇 Section -->
+            <section id="risks">
+                <div class="text-center mb-10">
+                    <h2 class="text-2xl font-bold mb-2">三、战略性SWOT分析</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">此部分将投资组合的内在优势、劣势，以及外部的机会和威胁进行综合评估，为制定优化策略提供决策依据。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card p-6 border-l-4 border-green-500">
+                        <h3 class="text-xl font-semibold mb-3 text-green-700">优势 (Strengths) 👍</h3>
+                        <ul class="space-y-2 list-disc list-inside">
+                            <li><strong>高流动性与资本保值:</strong> 超过70%的资产配置于现金和债券，防御性强。</li>
+                            <li><strong>优质管理人:</strong> 主动型基金经理（如赵晓东、徐彦）拥有明确且长期的投资哲学。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 border-l-4 border-red-500">
+                        <h3 class="text-xl font-semibold mb-3 text-red-700">劣势 (Weaknesses) 👎</h3>
+                         <ul class="space-y-2 list-disc list-inside">
+                            <li><strong>过度集中:</strong> 在基金公司和基金经理上存在严重集中风险。</li>
+                            <li><strong>次优配置:</strong> 现金/债券比例过高，长期回报可能被通胀侵蚀。</li>
+                            <li><strong>配置冗余:</strong> 多只同类基金增加了复杂性，但未带来实质分散。</li>
+                            <li><strong>战略不连贯:</strong> 价值投资与主题成长之间存在策略冲突。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 border-l-4 border-blue-500">
+                        <h3 class="text-xl font-semibold mb-3 text-blue-700">机会 (Opportunities) 💡</h3>
+                        <ul class="space-y-2 list-disc list-inside">
+                            <li><strong>再平衡促增长:</strong> 将部分现金系统性地再配置到增长型资产。</li>
+                            <li><strong>加强全球分散化:</strong> 引入更多元的全球或区域性权益基金。</li>
+                             <li><strong>简化投资组合:</strong> 合并冗余持仓，降低管理复杂性。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 border-l-4 border-yellow-500">
+                        <h3 class="text-xl font-semibold mb-3 text-yellow-700">威胁 (Threats) ⚡️</h3>
+                         <ul class="space-y-2 list-disc list-inside">
+                            <li><strong>通货膨胀风险:</strong> 对组合长期真实回报的最主要威胁。</li>
+                            <li><strong>利率风险:</strong> 利率上升将对庞大的固收持仓产生负面影响。</li>
+                            <li><strong>管理人风险:</strong> 组合业绩过度依赖少数管理人的决策。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- 优化建议 Section -->
+            <section id="recommendations">
+                 <div class="text-center mb-10">
+                    <h2 class="text-2xl font-bold mb-2">四、投资组合优化行动建议</h2>
+                    <p class="max-w-3xl mx-auto text-gray-600">基于全面的分析，我们提出以下具体、可执行的优化步骤。您还可以使用AI功能，一键生成给客户的策略执行邮件。</p>
+                </div>
+                
+                <div class="text-center mb-8">
+                    <button id="generateEmailBtn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300">
+                        ✨ AI生成策略执行邮件
+                    </button>
+                    <div id="emailResultContainer" class="hidden mt-6 text-left"></div>
+                </div>
+
+                <div class="space-y-6" id="recommendation-list">
+                    <div class="card">
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-lg font-semibold">建议一：核心资产配置再平衡</h3>
+                                <span class="bg-red-100 text-red-800 text-sm font-medium px-3 py-1 rounded-full">高优先级</span>
+                            </div>
+                            <p data-recommendation="建议分阶段将现金及货币市场工具的配置比例从当前的24.5%降低至10%-15%的战略水平。此举将释放约100万元资金，用于捕捉更高的增长机会，是优化整体回报的第一步。">建议分阶段将现金及货币市场工具的配置比例从当前的**24.5%降低至10%-15%**的战略水平。此举将释放约100万元资金，用于捕捉更高的增长机会，是优化整体回报的第一步。</p>
+                        </div>
+                    </div>
+                     <div class="card">
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-lg font-semibold">建议二：多元化增长引擎</h3>
+                                <span class="bg-red-100 text-red-800 text-sm font-medium px-3 py-1 rounded-full">高优先级</span>
+                            </div>
+                            <p data-recommendation="降低在国海富兰克林基金公司的集中度，并利用再平衡释放的资金，构建更多元化的国内权益组合。可考虑增加一只宽基指数基金（如沪深300 ETF）或一位不同风格（如GARP）的基金经理，以补充现有的价值投资倾向。">降低在国海富兰克林基金公司的集中度，并利用再平衡释放的资金，构建更多元化的国内权益组合。可考虑增加一只宽基指数基金（如沪深300 ETF）或一位不同风格（如GARP）的基金经理，以补充现有的价值投资倾向。</p>
+                        </div>
+                    </div>
+                     <div class="card">
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-lg font-semibold">建议三：重构国际市场敞口</h3>
+                                <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full">中优先级</span>
+                            </div>
+                            <p data-recommendation="改变国富全球科技互联基金作为*唯一*国际化投资的现状。建议增加一只核心的、多元化的全球股票基金（如追踪MSCI全球指数的基金），作为国际化配置的基石，以降低行业和地域的集中风险。">改变国富全球科技互联基金作为*唯一*国际化投资的现状。建议增加一只核心的、多元化的全球股票基金（如追踪MSCI全球指数的基金），作为国际化配置的基石，以降低行业和地域的集中风险。</p>
+                        </div>
+                    </div>
+                     <div class="card">
+                        <div class="p-4">
+                             <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-lg font-semibold">建议四：精简固定收益持仓</h3>
+                                <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full">中优先级</span>
+                            </div>
+                            <p data-recommendation="将两只货币市场基金合并为一只，并重新审视四只“固收+”基金。鉴于其投资任务相似，可考虑将它们合并为两只同类中表现最佳的基金，以降低管理复杂性和潜在的持仓重叠。">将两只货币市场基金合并为一只，并重新审视四只“固收+”基金。鉴于其投资任务相似，可考虑将它们合并为两只同类中表现最佳的基金，以降低管理复杂性和潜在的持仓重叠。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const portfolioData = {
+                totalValue: 877.45,
+                funds: [
+                    { code: '014088.OF', name: '永赢稳健增强A', value: 157.13, manager: '永赢基金', ratio: 17.9, type: '债券型-混合二级', analysis: '作为第一大重仓基金，其“固收+”策略近期表现强劲，拉动了组合整体回报，但其股票部分也增加了权益风险。', assetSize: '40.59亿', inceptionDate: '2021-12-28' },
+                    { code: '000891.OF', name: '博时现金宝B', value: 120.38, manager: '博时基金', ratio: 13.7, type: '货币型-普通货币', analysis: '标准的流动性管理工具，规模巨大。过高的配置比例是造成组合整体收益率偏低的主要原因之一。', assetSize: '417.03亿', inceptionDate: '2014-11-21' },
+                    { code: '002361.OF', name: '国富恒瑞A', value: 116.77, manager: '国海富兰克林基金', ratio: 13.3, type: '债券型-混合二级', analysis: '由赵晓东管理的核心“固收+”持仓，其表现同时受利率市场和基金经理在价值/金融板块选股能力的影响。', assetSize: '59.50亿', inceptionDate: '2016-02-04' },
+                    { code: '000860.OF', name: '银华惠增利A', value: 94.22, manager: '银华基金', ratio: 10.7, type: '货币型-普通货币', analysis: '与博时现金宝类似，是另一大块现金等价物。同时持有两只增加了复杂性，但无显著战略优势。', assetSize: '419.02亿', inceptionDate: '2014-11-13' },
+                    { code: '675100.OF', name: '西部利得得尊A', value: 66.88, manager: '西部利得基金', ratio: 7.6, type: '债券型-混合一级', analysis: '作为固收部分的稳定贡献者，相较于二级债基更保守，表现稳健。', assetSize: '21.75亿', inceptionDate: '2017-03-01' },
+                    { code: '511360.OF', name: '海富通中证短融ETF', value: 66.88, manager: '海富通基金', ratio: 7.6, type: '指数型-固收', analysis: '提供了对短久期债券的敞口，对利率上升的敏感度较低，是保守核心中合理的组成部分。', assetSize: '246.78亿', inceptionDate: '2020-08-03' },
+                    { code: '008515.OF', name: '国富基本面优选A', value: 64.58, manager: '国海富兰克林基金', ratio: 7.4, type: '混合型-偏股', analysis: '由赵晓东管理的旗舰型权益产品，重仓大盘价值/优质龙头，其业绩高度依赖于这些股票的表现和基金经理的决策。', assetSize: '33.92亿', inceptionDate: '2020-02-13' },
+                    { code: '006373.OF', name: '国富全球科技互联A', value: 63.87, manager: '国海富兰克林基金', ratio: 7.3, type: 'QDII-混合偏股', analysis: '组合唯一的全球化入口，一个高风险、高回报的卫星头寸，高度集中于全球科技行业，与国内A股相关性较低。', assetSize: '12.67亿', inceptionDate: '2018-11-20' },
+                    { code: '750003.OF', name: '安信目标收益C', value: 63.69, manager: '安信基金', ratio: 7.3, type: '债券型-混合一级', analysis: '组合中第四只“固收+”基金。多只同类基金在单一策略类型上构成了显著且可能冗余的集中。', assetSize: '21.69亿', inceptionDate: '2012-09-25' },
+                    { code: '018413.OF', name: '大成竞争优势C', value: 63.07, manager: '大成基金', ratio: 7.2, type: '混合型-偏股', analysis: '作为另一个国内权益驱动引擎，基金经理徐彦的投资哲学提供了与赵晓东不同的价值投资视角，形成了补充。', assetSize: '45.38亿', inceptionDate: '2023-05-11' }
+                ]
+            };
+            
+            async function callGeminiAPI(prompt) {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        return "未能从AI获取有效回复。";
+                    }
+                } catch (error) {
+                    console.error("Gemini API call error:", error);
+                    return "调用AI服务时出错，请稍后重试。";
+                }
+            }
+            
+            function showLoading(element, message = "正在生成...") {
+                element.innerHTML = `<div class="flex items-center justify-center"><div class="spinner"></div><span>${message}</span></div>`;
+                element.classList.remove('hidden');
+            }
+
+            // Asset Allocation Chart
+            const assetCtx = document.getElementById('assetAllocationChart').getContext('2d');
+            new Chart(assetCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['现金及货币 (24.5%)', '固定收益 (46.1%)', '权益及偏股 (29.5%)'],
+                    datasets: [{ data: [24.5, 46.1, 29.5], backgroundColor: ['#F5A623', '#4A90E2', '#50E3C2'], borderColor: '#F8F7F4', borderWidth: 4, hoverOffset: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 20, font: { size: 14 } } }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.parsed}%` } } }, cutout: '60%' }
+            });
+
+            // Manager Concentration Chart
+            const managerCtx = document.getElementById('managerConcentrationChart').getContext('2d');
+            const managerData = portfolioData.funds.reduce((acc, fund) => { acc[fund.manager] = (acc[fund.manager] || 0) + fund.ratio; return acc; }, {});
+            const sortedManagers = Object.entries(managerData).sort(([, a], [, b]) => b - a);
+            new Chart(managerCtx, {
+                type: 'bar',
+                data: { labels: sortedManagers.map(m => m[0]), datasets: [{ label: '占总资产比例 (%)', data: sortedManagers.map(m => m[1].toFixed(1)), backgroundColor: '#6B7280', borderRadius: 4, barPercentage: 0.6 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${c.raw}%` } } }, scales: { x: { beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { callback: (v) => v + '%' } }, y: { grid: { display: false } } } }
+            });
+
+            // Fund Table
+            const tableBody = document.getElementById('fundTableBody');
+            portfolioData.funds.forEach((fund, index) => {
+                const fundCard = document.createElement('div');
+                fundCard.className = "card";
+                fundCard.innerHTML = `
+                    <div class="p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <div>
+                                <h4 class="font-bold text-md">${fund.name}</h4>
+                                <p class="text-sm text-gray-500">${fund.code}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">基金管理人</p>
+                                <p class="font-semibold">${fund.manager}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">持仓市值(万)</p>
+                                <p class="font-semibold">${fund.value.toFixed(2)}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">占比(%)</p>
+                                <p class="font-semibold">${fund.ratio.toFixed(1)}%</p>
+                            </div>
+                        </div>
+                        <div class="border-t my-4"></div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                             <div><strong>基金类型:</strong> ${fund.type}</div>
+                             <div><strong>资产规模:</strong> ${fund.assetSize}</div>
+                             <div><strong>成立日期:</strong> ${fund.inceptionDate}</div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 p-3 bg-gray-50 rounded-md"><strong>分析师评价:</strong> ${fund.analysis}</p>
+                        <button class="generate-summary-btn bg-indigo-500 text-white text-xs font-bold py-1 px-3 rounded hover:bg-indigo-600" data-index="${index}">✨ 生成AI摘要与展望</button>
+                        <div class="gemini-output-fund mt-3 hidden"></div>
+                    </div>`;
+                tableBody.appendChild(fundCard);
+            });
+            
+            document.querySelectorAll('.generate-summary-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const fundIndex = e.target.getAttribute('data-index');
+                    const fund = portfolioData.funds[fundIndex];
+                    const outputDiv = e.target.nextElementSibling;
+                    
+                    showLoading(outputDiv);
+
+                    const prompt = `你是一位专业的基金分析师。基于以下信息，为客户撰写一段关于“${fund.name}”的简要摘要和未来展望。摘要应通俗易懂，展望应结合当前宏观经济环境。请直接输出摘要和展望内容。
+                    - 基金类型: ${fund.type}
+                    - 基金经理: ${fund.manager}
+                    - 现有分析: ${fund.analysis}`;
+                    
+                    const result = await callGeminiAPI(prompt);
+                    outputDiv.innerHTML = result;
+                    outputDiv.classList.add('gemini-output');
+                });
+            });
+
+            // Email Generation
+            document.getElementById('generateEmailBtn').addEventListener('click', async (e) => {
+                const btn = e.target;
+                const emailResultContainer = document.getElementById('emailResultContainer');
+                showLoading(emailResultContainer, "正在为您撰写邮件...");
+                btn.disabled = true;
+
+                const recommendations = Array.from(document.querySelectorAll('#recommendation-list [data-recommendation]'))
+                                             .map(el => `- ${el.getAttribute('data-recommendation')}`)
+                                             .join('\n');
+
+                const prompt = `你是一位专业的财富顾问。请根据以下投资组合优化建议，为客户起草一封专业的电子邮件。邮件需要总结调整的核心逻辑，清晰列出各项行动建议，并以鼓励和专业的口吻结尾。请勿包含任何占位符如“[客户姓名]”，直接以“尊敬的投资者”开头。
+                
+                核心诊断: 投资组合呈现高度保守姿态，但也因此暴露了显著的集中度风险和机会成本。资产配置失衡，管理人集中度过高。
+                
+                优化建议列表:
+                ${recommendations}`;
+
+                const result = await callGeminiAPI(prompt);
+                emailResultContainer.innerHTML = `
+                    <div class="card p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-bold">AI生成的邮件草稿</h4>
+                            <button id="copyEmailBtn" class="bg-gray-200 text-xs font-bold py-1 px-3 rounded hover:bg-gray-300">复制</button>
+                        </div>
+                        <textarea id="emailContent" class="w-full h-64 p-2 border rounded bg-gray-50 text-sm">${result}</textarea>
+                    </div>`;
+                emailResultContainer.classList.remove('hidden');
+                btn.disabled = false;
+                
+                document.getElementById('copyEmailBtn').addEventListener('click', () => {
+                    const textarea = document.getElementById('emailContent');
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('邮件内容已复制到剪贴板！');
+                    } catch (err) {
+                        alert('复制失败，请手动复制。');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
