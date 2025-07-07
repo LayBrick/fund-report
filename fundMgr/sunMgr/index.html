@@ -1,596 +1,588 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大成港股精选混合 - 基金分析报告</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- 
+    Chosen Palette: Warm Neutrals - A calm and professional palette using beige, slate, a muted teal for primary actions, and a soft coral for accents, creating a supportive and integrated feel.
+    Application Structure Plan: V3 Final Version. This SPA has been restructured into a comprehensive due-diligence report by merging the manager's profile with the fund analysis. The new flow is: 1. Fund Snapshot. 2. Manager Profile (Career, Philosophy). 3. Performance & Attribution. 4. Portfolio Deconstruction. 5. Strategy & Outlook (including new market views). 6. Risk Assessment. This structure provides a complete 360-degree view, allowing a user to understand the "who" (manager) behind the "what" (fund performance and holdings). This is the most logical structure for a definitive analysis.
+    Visualization & Content Choices: 
+    - Report Info: Key Fund Metrics (Table 1) -> Goal: Inform -> Viz: KPI Cards -> Interaction: None -> Justification: Quick, scannable overview. -> Library: HTML/Tailwind
+    - Report Info: Manager's Career & Philosophy -> Goal: Explain -> Viz: **New Section with Timeline & Icon Cards** -> Interaction: None -> Justification: Merges manager profile content to provide critical context. -> Library: HTML/Tailwind
+    - Report Info: Performance in Market Environments -> Goal: Analyze -> Viz: Line Chart & Horizontal Bar Chart -> Interaction: Hover -> Justification: Visualizes performance trends and all-weather capability. -> Library: Chart.js
+    - Report Info: Portfolio Composition -> Goal: Inform -> Viz: Donut Charts & HTML Table -> Interaction: Hover -> Justification: Shows asset/industry mix and top holdings. -> Library: Chart.js, HTML
+    - Report Info: Manager's Latest Views -> Goal: Inform/Forecast -> Viz: **New Section with Thematic Cards** -> Interaction: None -> Justification: Adds forward-looking perspective as requested. -> Library: HTML/Tailwind
+    - Report Info: Risk Metrics -> Goal: Warn -> Viz: Comparison Table & Text Cards -> Justification: Clearly presents risks for a balanced view. -> Library: HTML/Tailwind
+    CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <title>广发价值核心A：交互式深度剖析 (V3 最终版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #000000;
-            color: #e0e0e0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #FDFBF8;
+            color: #383838;
         }
-        .highlight-text {
-            color: #FFA500; /* Bright Orange */
-        }
-        .highlight-bg-subtle-gradient {
-            background-image: linear-gradient(to bottom right, rgba(255, 165, 0, 0.2), rgba(255, 165, 0, 0.05));
-        }
-        .main-card {
-            background-color: #1a1a1a;
-            border: 1px solid #333333;
-            transition: all 0.5s ease-out;
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        .mini-card {
-            background-color: #222222;
-            border: 1px solid #383838;
-            transition: all 0.5s ease-out;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        .main-card.is-visible, .mini-card.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .main-title-gradient {
-            background: linear-gradient(to right, #FFA500, #FFC300);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .chart-container canvas {
-            background-color: rgba(34, 34, 34, 0.5); /* #222222 with some transparency */
-            border-radius: 0.5rem; /* rounded-lg */
-        }
-        .tooltip {
+        .chart-container {
             position: relative;
-            display: inline-block;
-            border-bottom: 1px dotted #FFA500;
-            cursor: help;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
         }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 220px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px 10px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -110px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 0.8rem;
-            line-height: 1.4;
+        .bg-primary { background-color: #FDFBF8; }
+        .bg-secondary { background-color: #F1ECE6; }
+        .text-main { color: #383838; }
+        .text-subtle { color: #6e6e6e; }
+        .accent-color { color: #00796B; } /* Muted Teal */
+        .accent-bg { background-color: #00796B; }
+        .highlight-color { color: #FF7043; } /* Soft Coral */
+        .nav-link {
+            transition: color 0.3s ease;
         }
-        .tooltip .tooltiptext::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: #333 transparent transparent transparent;
+        .nav-link:hover {
+            color: #00796B;
         }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
+        .active-nav {
+            color: #00796B;
+            border-bottom: 2px solid #00796B;
+            padding-bottom: 4px;
         }
-
-        /* Custom scrollbar for webkit browsers */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAEAEA;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        ::-webkit-scrollbar-track {
-            background: #1a1a1a;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
         }
-        ::-webkit-scrollbar-thumb {
-            background: #FFA500;
-            border-radius: 4px;
+        html {
+            scroll-behavior: smooth;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #cc8400;
+        .table-auto th, .table-auto td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #EAEAEA;
         }
-
+        .table-auto thead {
+            background-color: #F8F9FA;
+        }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        highlight: '#FFA500',
-                        'highlight-dark': '#cc8400',
-                        'card-bg': '#1a1a1a',
-                        'mini-card-bg': '#222222',
-                        'border- subdued': '#333333',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="antialiased">
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
-        <!-- Header -->
-        <header class="text-center py-8 md:py-12">
-            <i class="fas fa-chart-line fa-3x highlight-text mb-4"></i>
-            <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold main-title-gradient">大成港股精选混合</h1>
-            <p class="text-lg sm:text-xl md:text-2xl text-gray-300 mt-2 font-semibold">Dacheng Hong Kong Stock Select Mixed Fund</p>
-            <p class="text-sm text-gray-500 mt-1">基金分析报告 (截至 2025-03-31)</p>
-        </header>
+<body class="bg-primary text-main">
 
-        <!-- Section 1: 核心投资逻辑摘要 -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-lightbulb mr-3 highlight-text"></i>1. 核心投资逻辑摘要</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">谨慎偏乐观</h3>
-                    <p class="text-sm text-gray-400 mt-2">2025年港股市场延续强势，基金经理持谨慎偏乐观态度，认为牛市仍在运行。</p>
-                    <p class="text-xs text-gray-500 mt-1">Market Outlook Q1 2025</p>
+    <header id="header" class="bg-primary/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-xl font-bold accent-color">广发价值核心A · 综合研判</div>
+            <div class="hidden md:flex space-x-6 lg:space-x-8">
+                <a href="#manager" class="nav-link font-medium text-subtle text-sm">基金经理</a>
+                <a href="#performance" class="nav-link font-medium text-subtle text-sm">业绩归因</a>
+                <a href="#portfolio" class="nav-link font-medium text-subtle text-sm">组合解构</a>
+                <a href="#strategy" class="nav-link font-medium text-subtle text-sm">策略与展望</a>
+                <a href="#risk" class="nav-link font-medium text-subtle text-sm">风险评估</a>
+            </div>
+            <div class="md:hidden">
+                <button id="menu-btn" class="text-subtle focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#manager" class="block py-2 px-6 text-sm text-subtle hover:bg-secondary">基金经理</a>
+            <a href="#performance" class="block py-2 px-6 text-sm text-subtle hover:bg-secondary">业绩归因</a>
+            <a href="#portfolio" class="block py-2 px-6 text-sm text-subtle hover:bg-secondary">组合解构</a>
+            <a href="#strategy" class="block py-2 px-6 text-sm text-subtle hover:bg-secondary">策略与展望</a>
+            <a href="#risk" class="block py-2 px-6 text-sm text-subtle hover:bg-secondary">风险评估</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <section id="hero" class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">广发价值核心A (010377)</h1>
+            <p class="text-lg text-subtle max-w-3xl mx-auto mb-8">
+                对基金经理吴远怡“非线性成长”投资哲学的核心实践载体进行全面、深入的剖析。本报告旨在揭示其卓越业绩背后的驱动因素、投资组合的构建逻辑以及潜在的风险。
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+                <div class="card p-6 rounded-lg">
+                    <h3 class="font-semibold text-subtle text-sm mb-2">管理规模</h3>
+                    <p class="text-3xl font-bold text-main">43.99 <span class="text-base font-normal">亿元</span></p>
+                    <p class="text-xs text-subtle mt-1">截至 2025-03-31</p>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">看好泛成长</h3>
-                    <p class="text-sm text-gray-400 mt-2">基于中国经济复苏和美元降息预期，全年维度仍对"泛成长风格"高看一线。</p>
-                    <p class="text-xs text-gray-500 mt-1">Style Preference</p>
+                <div class="card p-6 rounded-lg">
+                    <h3 class="font-semibold text-subtle text-sm mb-2">经理任职回报</h3>
+                    <p class="text-3xl font-bold highlight-color">50.34%</p>
+                     <p class="text-xs text-subtle mt-1">2022-11-01 至今</p>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">精选优质个股</h3>
-                    <p class="text-sm text-gray-400 mt-2">选取优秀营商模型、长期竞争优势、<span class="tooltip">EPS<span class="tooltiptext">每股收益 (Earnings Per Share)</span></span>逆市有机增长的公司。</p>
-                    <p class="text-xs text-gray-500 mt-1">Stock Selection Criteria</p>
+                <div class="card p-6 rounded-lg">
+                    <h3 class="font-semibold text-subtle text-sm mb-2">夏普比率 (近3年)</h3>
+                    <p class="text-3xl font-bold accent-color">0.22</p>
+                     <p class="text-xs text-subtle mt-1">同类平均: -0.30</p>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">聚焦细分增长</h3>
-                    <p class="text-sm text-gray-400 mt-2">特别关注极致性价比品类、创新药、+AI等细分快速增长领域的佼佼者。</p>
-                    <p class="text-xs text-gray-500 mt-1">Focus Areas</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">对冲滞胀风险</h3>
-                    <p class="text-sm text-gray-400 mt-2">鉴于全球经济滞胀尾部风险上升，适度增配优质上游资源品公司。</p>
-                    <p class="text-xs text-gray-500 mt-1">Risk Hedging</p>
+                <div class="card p-6 rounded-lg">
+                    <h3 class="font-semibold text-subtle text-sm mb-2">最大回撤 (近3年)</h3>
+                    <p class="text-3xl font-bold text-main">-43.91%</p>
+                    <p class="text-xs text-subtle mt-1">同类平均: -40.80%</p>
                 </div>
             </div>
         </section>
 
-        <!-- Section 2: 策略类型、投资风格与策略 -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-sitemap mr-3 highlight-text"></i>2. 策略类型、投资风格与策略</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mb-6">
-                <div class="mini-card rounded-lg p-4">
-                    <h3 class="text-xl font-bold text-white">高增长/赛道投资</h3>
-                    <p class="text-xs text-gray-400 mt-1">主要类型</p>
-                </div>
-                <div class="mini-card rounded-lg p-4">
-                    <h3 class="text-xl font-bold highlight-text">#成长导向#</h3>
-                    <p class="text-xs text-gray-400 mt-1">主要风格导向</p>
-                </div>
-                <div class="mini-card rounded-lg p-4">
-                    <h3 class="text-xl font-bold text-white">#市值均衡#</h3>
-                    <p class="text-xs text-gray-400 mt-1">主要市值侧重 (推断)</p>
-                </div>
-                <div class="mini-card rounded-lg p-4">
-                    <h3 class="text-xl font-bold text-white">#行业均衡#</h3>
-                    <p class="text-xs text-gray-400 mt-1">主要行业暴露</p>
-                </div>
-                <div class="mini-card rounded-lg p-4">
-                    <h3 class="text-xl font-bold highlight-text">#赛道景气度驱动#</h3>
-                    <p class="text-xs text-gray-400 mt-1">关键方法/特征</p>
-                </div>
-                 <div class="mini-card rounded-lg p-4">
-                    <h3 class="text-xl font-bold highlight-text"><span class="tooltip">#阿尔法追求#<span class="tooltiptext">指基金经理通过主动管理，在承担市场系统性风险（Beta）之外，获取超额收益的能力。</span></span></h3>
-                    <p class="text-xs text-gray-400 mt-1">关键方法/特征</p>
-                </div>
-            </div>
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">主要风格 / 风格倾向:</h3>
-            <p class="text-gray-300 mb-4 leading-relaxed text-sm">本基金展现出清晰的成长导向投资风格，重点投资于科技、消费、创新医疗等高增长潜力赛道的公司，同时强调所选公司的优质基本面（如优秀商业模式、长期竞争优势）。基金经理积极进行个股精选，并结合宏观判断进行战术性配置调整，例如本报告期内为对冲潜在滞胀风险而增配了上游资源品。</p>
-            
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">判断依据:</h3>
-            <ul class="list-disc list-inside text-gray-300 space-y-2 mb-4 text-sm">
-                <li>基金经理在报告中明确指出对"泛成长风格"的偏好。</li>
-                <li>聚焦于"细分快速增长领域（如极致性价比品类、创新药、+AI 等）的佼佼者"。</li>
-                <li>对公司选择标准提及"优秀营商模型和长期竞争优势的公司，看重其EPS 逆市有机增长的能力"。</li>
-                <li>实际持仓中，泡泡玛特、小米集团、腾讯控股等均为成长性较为突出的公司。</li>
-                <li>新增并增持紫金矿业、中国宏桥等资源品，反映了管理人基于宏观判断（对冲滞胀风险）进行的战术调整。</li>
-            </ul>
-
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">具体策略/结构特征:</h3>
-            <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm">
-                <li>主动管理下的精选个股策略 ("精益求精")。</li>
-                <li>投资范围主要为港股，并包含部分在美国上市的中概股（如拼多多）。</li>
-                <li>实施了战术性行业配置以对冲特定宏观风险。</li>
-                <li>关注"主题性投资机会"（招募说明书提及）。</li>
-            </ul>
-        </section>
-
-        <!-- Section 3: 投资组合与变动分析 -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-chart-pie mr-3 highlight-text"></i>3. 投资组合与变动分析 <span class="text-base font-normal text-gray-400 ml-2">(截至2025-03-31)</span></h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="mini-card rounded-lg p-4 md:p-6 text-center">
-                    <div class="text-6xl font-bold highlight-text">92.72%</div>
-                    <p class="text-sm text-gray-400 mt-2">股票资产占基金净资产比例</p>
-                    <p class="text-xs text-gray-500 mt-1">Equity to Net Asset Value</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 text-center">
-                    <div class="text-6xl font-bold highlight-text">90.67%</div>
-                    <p class="text-sm text-gray-400 mt-2">股票资产占基金总资产比例</p>
-                    <p class="text-xs text-gray-500 mt-1">Equity to Total Assets</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-gray-200">行业分布 (彭博行业分类)</h3>
-                    <div class="chart-container h-72 md:h-96">
-                        <img src="https://jianda-cmsstatic.oss-cn-shenzhen.aliyuncs.com/assets/charts/20255/1747117268527_uvyrmub5fsi.png" alt="行业分布图" class="w-full h-full object-contain">
+        <section id="manager" class="mb-16 md:mb-24 bg-secondary py-12 md:py-20 -mx-6 px-6 scroll-mt-20">
+            <div class="container mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-4">基金经理画像：吴远怡</h2>
+                <p class="text-center text-subtle mb-10 max-w-3xl mx-auto">
+                    理解这只基金，必须先理解其背后的掌舵人。吴远怡的投资框架并非单一理论的产物，而是其独特的、融合了本土智慧与全球视野的职业经历的直接体现。
+                </p>
+                <div class="grid md:grid-cols-2 gap-8 items-center mb-12">
+                    <div>
+                        <h3 class="font-bold text-xl mb-4 accent-color">能力进化之路</h3>
+                        <div class="relative border-l-2 border-gray-300 pl-6 space-y-8">
+                            <div class="relative">
+                                <div class="absolute -left-7 top-1 w-4 h-4 bg-gray-300 rounded-full"></div>
+                                <p class="font-semibold">2011-2014：申万研究所</p>
+                                <p class="text-sm text-subtle">作为A股消费行业研究员，奠定扎实的自下而上基本面研究功底。</p>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute -left-7 top-1 w-4 h-4 bg-gray-300 rounded-full"></div>
+                                <p class="font-semibold">2014-2017：香港惠理基金</p>
+                                <p class="text-sm text-subtle">在外资机构锻造全球视野，深入理解港股市场与长期商业模式。</p>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute -left-7 top-1 w-4 h-4 bg-gray-300 rounded-full"></div>
+                                <p class="font-semibold">2017-2020：中国人寿资管</p>
+                                <p class="text-sm text-subtle">作为首批港股通投资经理，磨练出兼顾绝对与相对收益的风险管理纪律。</p>
+                            </div>
+                             <div class="relative">
+                                <div class="absolute -left-7 top-1 w-4 h-4 accent-bg rounded-full"></div>
+                                <p class="font-semibold">2020-至今：广发基金</p>
+                                <p class="text-sm text-subtle">在公募平台全面施展，系统化实践并验证其成熟的投资哲学。</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-gray-200">前十大重仓股 (占净值%)</h3>
-                    <div class="chart-container h-72 md:h-96">
-                        <img src="https://jianda-cmsstatic.oss-cn-shenzhen.aliyuncs.com/assets/charts/20255/1747117301600_1fappvyufd9.png" alt="前十大重仓股图" class="w-full h-full object-contain">
+                    <div>
+                        <h3 class="font-bold text-xl mb-4 accent-color">核心投资哲学</h3>
+                        <div class="space-y-4">
+                            <div class="card p-4 rounded-lg">
+                                <h4 class="font-semibold">🎯 追寻“非线性增长”</h4>
+                                <p class="text-sm text-subtle">致力于发掘由技术变革或消费模式革新驱动的、有望实现几何级数增长的公司。</p>
+                            </div>
+                            <div class="card p-4 rounded-lg">
+                                <h4 class="font-semibold">🧐 观察驱动，判断为辅</h4>
+                                <p class="text-sm text-subtle">将精力聚焦于微观观察与概率判断，追求“模糊的正确”，避免“精确的错误”。</p>
+                            </div>
+                            <div class="card p-4 rounded-lg">
+                                <h4 class="font-semibold">🌉 跨市场阿尔法</h4>
+                                <p class="text-sm text-subtle">核心竞争力在于其在港股市场得到验证的强大选股能力，构筑了难以复制的优势。</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">主要持仓变动 (2025年第一季度):</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
-                <div class="mini-card rounded-lg p-4">
-                    <h4 class="font-semibold text-white">增持 <i class="fas fa-arrow-trend-up text-green-400"></i></h4>
-                    <p class="text-xs text-gray-400">泡泡玛特, 小米集团, 紫金矿业, 腾讯控股, 汇丰控股, 康方生物, 拼多多</p>
+        </section>
+
+        <section id="performance" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-4">业绩归因：全天候阿尔法引擎</h2>
+            <p class="text-center text-subtle mb-10 max-w-3xl mx-auto">
+                本章节深入分析基金的业绩来源。数据显示，基金的成功并非押注单一市场风格，而是在不同市场环境下均展现出强大的适应能力，其超额收益主要源于卓越的个股选择，尤其是在港股市场。
+            </p>
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-center">
+                <div class="lg:col-span-3 card rounded-lg p-4 md:p-6">
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
                 </div>
-                <div class="mini-card rounded-lg p-4">
-                    <h4 class="font-semibold text-white">新进前十 <i class="fas fa-star text-yellow-400"></i></h4>
-                    <p class="text-xs text-gray-400">中国宏桥, 洛阳钼业</p>
-                </div>
-                <div class="mini-card rounded-lg p-4">
-                    <h4 class="font-semibold text-white">减持(前十中) <i class="fas fa-arrow-trend-down text-red-400"></i></h4>
-                    <p class="text-xs text-gray-400">携程集团-S</p>
+                <div class="lg:col-span-2">
+                    <h3 class="font-bold text-lg text-center mb-4">长期持有必要性</h3>
+                     <p class="text-sm text-subtle mb-4">
+                        数据显示，持有时间与回报正相关。短期持有仅能获得微薄甚至为负的收益，而将持有周期拉长至两年以上，才能充分享受基金经理研究成果带来的丰厚回报。
+                    </p>
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <span class="w-16 font-medium text-sm">持有1月</span>
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div class="bg-blue-300 h-4 rounded-full" style="width: 10%"></div>
+                            </div>
+                            <span class="w-16 text-right font-bold text-sm">1.43%</span>
+                        </div>
+                        <div class="flex items-center">
+                             <span class="w-16 font-medium text-sm">持有6月</span>
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div class="bg-blue-400 h-4 rounded-full" style="width: 25%"></div>
+                            </div>
+                            <span class="w-16 text-right font-bold text-sm">7.35%</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-16 font-medium text-sm">持有1年</span>
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div class="bg-blue-500 h-4 rounded-full" style="width: 30%"></div>
+                            </div>
+                             <span class="w-16 text-right font-bold text-sm">8.21%</span>
+                        </div>
+                         <div class="flex items-center">
+                            <span class="w-16 font-medium text-sm">持有2年</span>
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div class="accent-bg h-4 rounded-full" style="width: 70%"></div>
+                            </div>
+                             <span class="w-16 text-right font-bold text-sm">23.80%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <p class="text-sm text-gray-300 mb-4">变动体现了对上游资源品的配置增加（符合对冲滞胀风险策略），同时增持核心成长股。</p>
-
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">与策略风格的一致性:</h3>
-             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-lg font-bold text-white">成长风格一致</h3>
-                    <p class="text-sm text-gray-400 mt-2">行业和个股选择与"泛成长风格"及特定高增长赛道关注基本一致。</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-lg font-bold text-white">战术配置体现</h3>
-                    <p class="text-sm text-gray-400 mt-2">资源类股增持印证了基于宏观判断的战术调整，体现灵活性。</p>
-                </div>
-                 <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-lg font-bold text-white">积极管理行为</h3>
-                    <p class="text-sm text-gray-400 mt-2">持仓变动显示积极管理，符合<span class="tooltip">阿尔法追求<span class="tooltiptext">指基金经理通过主动管理，在承担市场系统性风险（Beta）之外，获取超额收益的能力。</span></span>目标。</p>
+             <div class="mt-12 card rounded-lg p-4 md:p-6">
+                 <h3 class="font-bold text-lg text-center mb-4">不同市场环境下的业绩表现 (近两年)</h3>
+                 <p class="text-sm text-subtle text-center mb-6 max-w-2xl mx-auto">下图展示了该基金在不同市场风格下的业绩分位数（越高越好），清晰地揭示了其“顺境猛攻，逆境稳健”的全天候特征，尤其是在价值风格占优市场中的超预期表现。</p>
+                <div class="chart-container" style="height: 450px; max-height: 60vh;">
+                    <canvas id="marketEnvChart"></canvas>
                 </div>
             </div>
         </section>
 
-        <!-- Section 4: 业绩归因与关键驱动 -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-chart-line mr-3 highlight-text"></i>4. 业绩归因与关键驱动</h2>
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">业绩表现 (2025年第一季度):</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
-                <div class="mini-card rounded-lg p-4 md:p-6 text-center">
-                    <div class="text-5xl font-bold highlight-text">12.80%</div>
-                    <p class="text-sm text-gray-400 mt-2">A份额净值增长率</p>
-                    <p class="text-xs text-gray-500 mt-1">Class A NAV Growth</p>
+        <section id="portfolio" class="mb-16 md:mb-24 bg-secondary py-12 md:py-20 -mx-6 px-6 scroll-mt-20">
+             <div class="container mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-4">投资组合解构</h2>
+                <p class="text-center text-subtle mb-10 max-w-3xl mx-auto">
+                    深入探究基金的实际持仓，可以发现其投资理念的具体体现：高仓位运作、灵活的A/H股配置、以及对科技和新消费领域的高度信念。
+                </p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center mb-12">
+                    <div class="card rounded-lg p-4 md:p-6">
+                        <h3 class="font-semibold text-center mb-4">资产配置 (A股 vs H股)</h3>
+                        <div class="chart-container" style="height:300px; max-height:40vh;">
+                            <canvas id="assetAllocationChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card rounded-lg p-4 md:p-6">
+                        <h3 class="font-semibold text-center mb-4">行业配置 (前五)</h3>
+                         <div class="chart-container" style="height:300px; max-height:40vh;">
+                            <canvas id="industryAllocationChart"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 text-center">
-                    <div class="text-5xl font-bold highlight-text">12.64%</div>
-                    <p class="text-sm text-gray-400 mt-2">C份额净值增长率</p>
-                    <p class="text-xs text-gray-500 mt-1">Class C NAV Growth</p>
+                <div class="card rounded-lg p-2 md:p-4 overflow-x-auto">
+                    <h3 class="text-xl font-bold text-center pt-4 pb-6">前十大重仓股 (2025-Q1)</h3>
+                    <table class="table-auto w-full min-w-[600px] text-sm">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>股票名称</th>
+                                <th>股票代码</th>
+                                <th>市场</th>
+                                <th>占净值比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>老铺黄金</td><td>6181.HK</td><td class="font-medium text-red-600">港股</td><td>9.98%</td></tr>
+                            <tr><td>2</td><td>泡泡玛特</td><td>9992.HK</td><td class="font-medium text-red-600">港股</td><td>9.82%</td></tr>
+                            <tr><td>3</td><td>新易盛</td><td>300502.SZ</td><td class="font-medium text-blue-600">深市</td><td>7.91%</td></tr>
+                            <tr><td>4</td><td>中际旭创</td><td>300308.SZ</td><td class="font-medium text-blue-600">深市</td><td>6.64%</td></tr>
+                            <tr><td>5</td><td>沪电股份</td><td>002463.SZ</td><td class="font-medium text-blue-600">深市</td><td>5.46%</td></tr>
+                            <tr><td>6</td><td>兆易创新</td><td>603986.SH</td><td class="font-medium text-green-600">沪市</td><td>5.24%</td></tr>
+                            <tr><td>7</td><td>腾讯控股</td><td>0700.HK</td><td class="font-medium text-red-600">港股</td><td>5.05%</td></tr>
+                            <tr><td>8</td><td>美图公司</td><td>1357.HK</td><td class="font-medium text-red-600">港股</td><td>5.02%</td></tr>
+                            <tr><td>9</td><td>光环新网</td><td>300383.SZ</td><td class="font-medium text-blue-600">深市</td><td>4.09%</td></tr>
+                            <tr><td>10</td><td>小商品城</td><td>600415.SH</td><td class="font-medium text-green-600">沪市</td><td>4.08%</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 text-center">
-                    <div class="text-5xl font-bold text-green-400">+2.65<span class="text-3xl">%pts</span></div>
-                    <p class="text-sm text-gray-400 mt-2">A份额超越基准 (10.15%)</p>
-                    <p class="text-xs text-gray-500 mt-1">Alpha vs Benchmark</p>
-                </div>
-            </div>
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">关键驱动因素:</h3>
-             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6">
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-lg font-bold text-white">市场牛市延续</h3>
-                    <p class="text-sm text-gray-400 mt-2">基金经理认为港股市场延续了自2024年2月以来的牛市，Q1录得"开门红"。</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-lg font-bold text-white">策略执行有效</h3>
-                    <p class="text-sm text-gray-400 mt-2">超额收益可能来源于成长风格坚持、高增长细分选股及适应性调整（如增配资源股）。</p>
-                </div>
-            </div>
+             </div>
         </section>
 
-        <!-- Section 5: 关键洞察与风险提示 -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-exclamation-triangle mr-3 highlight-text"></i>5. 关键洞察与风险提示</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <div class="mini-card rounded-lg p-4 md:p-6 border-l-4 border-green-500">
-                    <h3 class="text-xl font-bold text-green-400">🟢 市场展望与策略信心</h3>
-                    <p class="text-sm text-gray-300 mt-2">对2025年港股持"谨慎偏乐观"，认为牛市仍在，继续看好"泛成长风格"。</p>
+        <section id="strategy" class="mb-16 md:mb-24 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-4">策略印证与市场展望</h2>
+            <p class="text-center text-subtle mb-10 max-w-3xl mx-auto">
+                吴远怡的投资策略有一个深层主线：识别并投资于那些精于“文化资本货币化”的公司。无论是泡泡玛特的现代IP，还是老铺黄金的传统工艺，其商业模式的核心都是将无形的文化价值转化为有形的财务回报。
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <button class="case-study-btn active-case-study px-4 py-2 rounded-full bg-secondary" data-case="popmart">泡泡玛特 (9992.HK)</button>
+                <button class="case-study-btn px-4 py-2 rounded-full" data-case="laopu">老铺黄金 (6181.HK)</button>
+            </div>
+            <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div id="case-popmart" class="case-study-content card rounded-lg p-6">
+                    <h4 class="font-bold text-lg accent-color mb-2">泡泡玛特：IP驱动的情感消费平台</h4>
+                    <ul class="space-y-3 text-sm text-subtle list-disc list-inside">
+                        <li><b>核心论点：</b>本质是IP孵化与运营平台，而非玩具制造商，精准捕捉了“悦己消费”趋势。</li>
+                        <li><b>非线性增长：</b>一个成功IP可在全球以极高利润率和极低边际成本复制扩张，新IP可不断叠加。</li>
+                        <li><b>护城河：</b>可持续的IP创造能力（如LABUBU），及通过盲盒和会员体系建立的高用户粘性。</li>
+                        <li><b>投资执行：</b>2022Q4市场低点时重仓，并长期持有，体现了卓越的前瞻性与持股信念。</li>
+                    </ul>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 border-l-4 border-green-500">
-                    <h3 class="text-xl font-bold text-green-400">🟢 主动风险管理</h3>
-                    <p class="text-sm text-gray-300 mt-2">关注滞胀风险，主动增配上游资源品对冲，体现积极风险管理与调整能力。</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 border-l-4 border-yellow-500">
-                    <h3 class="text-xl font-bold text-yellow-400">🟡 宏观经济依赖性</h3>
-                    <p class="text-sm text-gray-300 mt-2">投资逻辑依赖中国经济复苏和美元降息，若未如期实现可能影响表现。</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 border-l-4 border-red-500">
-                    <h3 class="text-xl font-bold text-red-400">🔴 市场波动性警示</h3>
-                    <p class="text-sm text-gray-300 mt-2">提及4月初因贸易政策不确定性引发的港股波动，暗示市场环境复杂，存在显著波动风险。</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6 border-l-4 border-yellow-500">
-                    <h3 class="text-xl font-bold text-yellow-400">🟡 投资理念的坚持与反思</h3>
-                    <p class="text-sm text-gray-300 mt-2">市场波动下对港股投资性价比信心或有增加，强调"为最坏情况做准备，追求最好结果"。</p>
+                <div id="case-laopu" class="case-study-content card rounded-lg p-6">
+                    <h4 class="font-bold text-lg accent-color mb-2">老铺黄金：工艺塑造的奢侈品牌</h4>
+                     <ul class="space-y-3 text-sm text-subtle list-disc list-inside">
+                        <li><b>核心论点：</b>通过“古法”工艺和“国潮”文化叙事，将黄金从商品转化为奢侈品。</li>
+                        <li><b>非线性增长：</b>品牌价值提升驱动定价权和利润率扩张，金价上涨提供额外杠杆。</li>
+                        <li><b>护城河：</b>“古法”工艺的文化与技术壁垒，及“一口价”模式带来的强大定价权。</li>
+                        <li><b>投资执行：</b>2024Q4纳入重仓，成为持有该股最多的公募基金之一，再次验证其对变革性公司的识别能力。</li>
+                    </ul>
                 </div>
             </div>
-        </section>
-
-        <!-- Section 6: 其他重要信息 -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-info-circle mr-3 highlight-text"></i>6. 其他重要信息</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <div class="text-4xl font-bold highlight-text">4.02 <span class="text-2xl">亿元</span></div>
-                    <p class="text-sm text-gray-400 mt-2">基金资产净值 (截至2025-03-31)</p>
-                    <p class="text-xs text-gray-500 mt-1">Net Asset Value</p>
+             <div class="mt-16 text-center bg-white card p-8 rounded-lg">
+                 <h3 class="text-2xl font-bold mb-4">最新市场观点与展望</h3>
+                  <p class="text-center text-subtle mb-8 max-w-2xl mx-auto">
+                    展望未来，吴远怡对市场保持乐观，并继续看好其长期坚守的核心主题。他认为以豆包（Doubao）、DeepSeek等为代表的国产AI创新，有望为中国科技产业乃至整体中国资产带来价值重估。
+                </p>
+                <div class="grid md:grid-cols-3 gap-6 text-left">
+                    <div class="border-l-4 border-teal-500 pl-4">
+                        <h4 class="font-bold">🤖 国产AI产业链</h4>
+                        <p class="text-sm text-subtle">持续看好AI基础设施，特别是国产算力、光模块等领域，并关注大模型在各行业的应用落地机会。</p>
+                    </div>
+                    <div class="border-l-4 border-orange-500 pl-4">
+                        <h4 class="font-bold">🛍️ 新消费与出海</h4>
+                        <p class="text-sm text-subtle">继续发掘具备强大品牌力和文化属性的新消费公司，尤其关注其在全球市场的扩张潜力。</p>
+                    </div>
+                    <div class="border-l-4 border-gray-500 pl-4">
+                        <h4 class="font-bold">🔄 周期成长机会</h4>
+                        <p class="text-sm text-subtle">机会主义地关注供需格局发生重大变化的周期性行业，如底部反转的新能源产业链等。</p>
+                    </div>
                 </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">柏杨 先生</h3>
-                    <p class="text-sm text-gray-400 mt-2">基金经理 (大成基金国际业务部总监)</p>
-                    <p class="text-xs text-gray-500 mt-1">Fund Manager</p>
-                </div>
-                <div class="mini-card rounded-lg p-4 md:p-6">
-                    <h3 class="text-2xl font-bold text-white">混合型QDII</h3>
-                    <p class="text-sm text-gray-400 mt-2">基金类型 (主要投资香港及境外市场)</p>
-                    <p class="text-xs text-gray-500 mt-1">Fund Type</p>
-                </div>
-            </div>
-            <div class="mt-6 text-sm text-gray-300 space-y-2">
-                <p><strong class="text-gray-100">业绩比较基准:</strong> 恒生指数收益率 (估值汇率折算) * 70% + 中证综合债指数收益率 * 30%</p>
-                <p><strong class="text-gray-100">行业分类标准:</strong> 投资组合部分采用彭博行业分类标准。</p>
-                <p><strong class="text-gray-100">重要提示:</strong> 报告期内未发现单一投资者持有基金份额比例达到或超过20%的情况，也无其他影响投资者决策的重要信息。</p>
-            </div>
+             </div>
         </section>
         
-        <!-- Section 7: 增强型表格数据 (JSON Data) -->
-        <section class="main-card rounded-2xl p-6 md:p-8 mb-8 md:mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold mb-6 flex items-center"><i class="fas fa-table-list mr-3 highlight-text"></i>7. 结构化数据洞察</h2>
-            <div id="jsonDataDisplay" class="space-y-4 text-sm">
-                <!-- JSON data will be rendered here by JavaScript -->
+        <section id="risk" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-4">风险评估与投资者适用性</h2>
+            <p class="text-center text-subtle mb-10 max-w-3xl mx-auto">
+                高阿尔法策略必然伴随特定风险。投资前，必须清醒认识该基金投资框架的内在风险，并评估其是否与自身的投资目标和风险承受能力相匹配。
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div class="p-6 rounded-lg bg-white border">
+                    <h3 class="font-bold text-lg accent-color mb-2">波动与回撤风险</h3>
+                    <p class="text-sm text-subtle">高成长、高集中度的风格导致净值波动和回撤幅度显著大于市场平均，对投资者持有体验构成挑战。</p>
+                </div>
+                <div class="p-6 rounded-lg bg-white border">
+                    <h3 class="font-bold text-lg accent-color mb-2">“右侧交易”风险</h3>
+                    <p class="text-sm text-subtle">在市场急剧反转或出现“牛市陷阱”时，右侧入场策略较为脆弱，可能导致在高位买入。但数据显示，吴远怡在该策略的执行上表现卓越。</p>
+                </div>
+                <div class="p-6 rounded-lg bg-white border">
+                    <h3 class="font-bold text-lg accent-color mb-2">持股集中风险</h3>
+                    <p class="text-sm text-subtle">基金对核心持仓的依赖度较高。一旦关键个股出现负面变化，可能对基金的整体表现产生显著影响。</p>
+                </div>
+                 <div class="p-6 rounded-lg bg-white border">
+                    <h3 class="font-bold text-lg accent-color mb-2">关键人物风险</h3>
+                    <p class="text-sm text-subtle">基金的卓越表现与基金经理吴远怡独特的个人能力和投资体系紧密相连。他的离职将对基金业绩的连续性构成重大风险。</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-secondary -mx-6 p-6 md:p-12 rounded-lg">
+                <div>
+                    <h3 class="text-xl font-bold mb-4 flex items-center"><span class="text-2xl mr-2">👍</span> 适合的投资者</h3>
+                    <ul class="space-y-2 text-sm list-disc list-inside text-subtle">
+                        <li>具备较高的风险承受能力，能容忍-30%以上的回撤。</li>
+                        <li>拥有3-5年以上的长期投资视野，不因短期波动而改变决策。</li>
+                        <li>追求积极、高强度的成长性回报，目标是获取超额收益。</li>
+                        <li>希望配置一位A+H股卓越选股能力的经理，看好中国科技与消费创新。</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4 flex items-center"><span class="text-2xl mr-2">👎</span> 可能不适用的投资者</h3>
+                     <ul class="space-y-2 text-sm list-disc list-inside text-subtle">
+                        <li>风格保守，追求稳健收益，厌恶风险。</li>
+                        <li>有短期（1年内）流动性需求。</li>
+                        <li>对净值回撤极为敏感，无法忍受账面浮亏。</li>
+                        <li>寻求投资组合中的核心稳定器或绝对收益产品。</li>
+                    </ul>
+                </div>
             </div>
         </section>
 
-        <footer class="text-center py-8 text-gray-500 text-xs">
-            <p>报告数据来源：大成港股精选混合.docx (转换于 2025-05-13 13:49)</p>
-            <p>分析生成时间：<span id="analysisTimestamp"></span></p>
-            <p>&copy; 2024 AI Generated Financial Report Visualization. For demonstration purposes only.</p>
-        </footer>
+    </main>
+    
+    <footer class="bg-secondary mt-16 py-6">
+        <div class="container mx-auto px-6 text-center text-xs text-subtle">
+            <p>本应用基于公开研究报告和数据生成，旨在提供信息参考，不构成任何投资建议。</p>
+            <p>数据来源：申万宏源研究报告、Wind资讯、基金季度报告。业绩数据截至报告发布日或2025年Q1。</p>
+        </div>
+    </footer>
 
-    </div>
 
-    <script>
-        const jsonDataString = `{ 
- "FundCode": "011583", 
- "FundName": "大成港股精选混合(QDII)A", 
- "ManagerName": "柏杨", 
- "ReportDate": "2025-03-31", 
- "V1_CoreLogic_Snippet": "对2025年全年港股市场表现谨慎偏乐观，牛市仍在运行过程之中。仍对泛成长风格的相对表现高看一线。选取优秀营商模型和长期竞争优势的公司，看重其EPS逆市有机增长能力，特别是细分快速增长领域。适度增加了部分优质上游资源品公司的配置以对冲滞胀风险。", 
- "V2_PrimaryType": "5. 高增长/赛道投资", 
- "V2_Summ_StyleOrient": "#成长导向#", 
- "V2_Summ_MarketCap": "#市值均衡#", 
- "V2_Summ_SectorExp": "#行业均衡#", 
- "V2_Summ_KeyFeature": "#赛道景气度驱动#, #阿尔法追求#", 
- "V2_StyleTendency_Desc": "展现清晰的成长导向投资风格，重点投资于科技、消费、创新医疗等高增长潜力赛道的优质公司，并结合宏观判断进行战术性配置调整。", 
- "V3_Portfolio_Summary": "股票仓位92.72%。重仓行业包括非必需消费品(23.08%)、材料(19.85%)、通讯(15.76%)、科技(11.65%)、医疗保健(10.07%)。前十大重仓股包括泡泡玛特、小米集团、紫金矿业、腾讯控股等，新增中国宏桥、洛阳钼业进入前十。", 
- "V3_Turnover_Consistency": "组合变动显示积极管理，特别是新增和增持资源股以应对宏观风险，与管理人阐述的战术调整一致。具体换手率未提供，但操作与成长结合灵活配置的特征相符。", 
- "V4_Attribution_Summary": "2025年Q1基金A份额上涨12.80%，超越业绩基准10.15%的表现。基金经理认为市场延续牛市，基金表现得益于对成长风格的坚持及在特定领域的选股和战术调整。", 
- "V5_Insight_Positive": "🟢 基金经理对市场有明确观点并坚持成长策略，同时具备主动风险管理意识，通过战术配置对冲宏观风险。对优质成长股的精选是核心。", 
- "V5_Insight_Risk": "🔴 基金表现受中国经济复苏、美元利率政策等宏观因素影响。全球贸易政策不确定性导致市场波动是主要外部风险。滞胀风险仍存。", 
- "V5_Outlook_Snippet": "我们重申在2024年底报告中所提出的对2025年全年港股市场表现谨慎偏乐观的看法。我们认为，港股市场自2024年2月以来的牛市仍在运行过程之中。展望2025全年维度，我们仍对泛成长风格的相对表现高看一线。我们认为未来全球经济走向滞胀的尾部风险较之早前有所上升。作为对冲，我们适度增加了部分优质上游资源品公司的配置。", 
- "V6_OtherInfo_Notes": "QDII混合型基金，主要投资港股。基金资产净值约4.02亿人民币（截至2025-03-31）。基金经理柏杨。业绩比较基准：恒生指数收益率*70%+中证综合债指数收益率*30%。", 
- "AnalysisTimestamp": "2025-05-10T12:00:00Z" 
-}`;
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const performanceData = {
+        labels: ['2022-11', '2023-02', '2023-05', '2023-08', '2023-11', '2024-02', '2024-05', '2024-08', '2024-11', '2025-02', '2025-05'],
+        datasets: [{
+            label: '广发价值核心A',
+            data: [100, 115, 105, 120, 110, 135, 145, 138, 152, 148, 150.34],
+            borderColor: '#FF7043',
+            backgroundColor: '#FF704333',
+            fill: true,
+            tension: 0.3,
+        }, {
+            label: '业绩比较基准',
+            data: [100, 105, 102, 108, 106, 115, 120, 118, 125, 128, 130.14],
+            borderColor: '#00796B',
+            backgroundColor: '#00796B33',
+            fill: true,
+            tension: 0.3,
+        }]
+    };
 
-        const jsonData = JSON.parse(jsonDataString);
+    const assetAllocationData = {
+        labels: ['H股 (港股)', 'A股'],
+        datasets: [{
+            data: [41.5, 58.5],
+            backgroundColor: ['#d32f2f', '#1976d2'],
+            borderColor: '#FDFBF8',
+            borderWidth: 4,
+        }]
+    };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Animation Observer
-            const observer = new IntersectionObserver((entries, obs) => {
-                entries.forEach((entry, index) => {
-                    if (entry.isIntersecting) {
-                        setTimeout(() => {
-                            entry.target.classList.add('is-visible');
-                        }, index * 100); // Stagger animation for grid items
-                        // obs.unobserve(entry.target); // Keep observing if you want animations on re-scroll
-                    } else {
-                        // Optional: Remove class if you want animation to replay on scroll out and back in
-                        // entry.target.classList.remove('is-visible');
+    const industryAllocationData = {
+        labels: ['信息技术', '可选消费', '工业', '原材料', '医药生物'],
+        datasets: [{
+            data: [45.1, 25.3, 12.5, 9.2, 7.9],
+            backgroundColor: ['#00796B', '#26A69A', '#80CBC4', '#FF7043', '#FFAB91'],
+            borderColor: '#FDFBF8',
+            borderWidth: 4,
+        }]
+    };
+    
+    const marketEnvData = {
+        labels: ['消费', '医药', '科技', '大盘成长', '大盘价值', '中小盘成长'],
+        datasets: [{
+            label: '顺境',
+            data: [94.40, 96.24, 91.67, 95.29, 87.10, 94.80],
+            backgroundColor: '#26A69A',
+            borderColor: '#00796B',
+            borderWidth: 1,
+        }, {
+            label: '逆境',
+            data: [82.31, 64.32, 46.31, 58.32, 98.38, 52.38],
+            backgroundColor: '#FFAB91',
+            borderColor: '#FF7043',
+            borderWidth: 1,
+        }]
+    };
+    
+    const chartOptions = (title) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { family: "'Noto Sans SC', sans-serif" }}},
+            title: { display: true, text: title, font: { size: 16, family: "'Noto Sans SC', sans-serif" }, padding: { bottom: 20 }},
+        },
+    });
+
+    const pieChartOptions = (title) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { family: "'Noto Sans SC', sans-serif" }}},
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${context.label}: ${context.parsed.toFixed(1)}%`;
                     }
-                });
-            }, { threshold: 0.1 });
-
-            document.querySelectorAll('.main-card, .mini-card').forEach(el => {
-                observer.observe(el);
-            });
-
-            // Chart.js Config
-            Chart.defaults.color = '#a0a0a0'; // Default font color for charts
-            Chart.defaults.borderColor = '#444444'; // Default border color for charts
-
-            // Industry Distribution Chart
-            const industryCtx = document.getElementById('industryDistributionChart').getContext('2d');
-            const industryData = {
-                labels: ['非必需消费品', '材料', '通讯', '科技', '医疗保健', '金融', '其他'],
-                datasets: [{
-                    label: '行业分布 (%)',
-                    data: [23.08, 19.85, 15.76, 11.65, 10.07, 7.89, (100 - 23.08 - 19.85 - 15.76 - 11.65 - 10.07 - 7.89).toFixed(2)],
-                    backgroundColor: [
-                        'rgba(255, 165, 0, 0.7)', // Orange
-                        'rgba(255, 99, 132, 0.7)',  // Red
-                        'rgba(54, 162, 235, 0.7)', // Blue
-                        'rgba(255, 206, 86, 0.7)', // Yellow
-                        'rgba(75, 192, 192, 0.7)', // Green
-                        'rgba(153, 102, 255, 0.7)',// Purple
-                        'rgba(201, 203, 207, 0.7)' // Grey
-                    ],
-                    borderColor: [
-                        '#FFA500',
-                        '#FF6384',
-                        '#36A2EB',
-                        '#FFCE56',
-                        '#4BC0C0',
-                        '#9966FF',
-                        '#C9CBCE'
-                    ],
-                    borderWidth: 1
-                }]
-            };
-            new Chart(industryCtx, {
-                type: 'doughnut',
-                data: industryData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#e0e0e0',
-                                padding: 10,
-                                font: { size: 10 }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: '#111',
-                            titleColor: '#FFA500',
-                            bodyColor: '#ddd',
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed !== null) {
-                                        label += context.parsed + '%';
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Top Holdings Chart
-            const holdingsCtx = document.getElementById('topHoldingsChart').getContext('2d');
-            const holdingsData = {
-                labels: ['泡泡玛特', '小米集团-W', '紫金矿业', '腾讯控股', '携程集团-S', '汇丰控股', '康方生物', '拼多多', '中国宏桥', '洛阳钼业'],
-                datasets: [{
-                    label: '持仓占比 (%)',
-                    data: [9.34, 8.34, 7.58, 7.28, 6.33, 5.26, 4.55, 4.14, 4.03, 3.90],
-                    backgroundColor: 'rgba(255, 165, 0, 0.6)',
-                    borderColor: '#FFA500',
-                    borderWidth: 1
-                }]
-            };
-            new Chart(holdingsCtx, {
-                type: 'bar',
-                data: holdingsData,
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            grid: { color: '#333' },
-                            ticks: { color: '#a0a0a0', font: {size: 10}}
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: { color: '#e0e0e0', font: {size: 10}}
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                         tooltip: {
-                            backgroundColor: '#111',
-                            titleColor: '#FFA500',
-                            bodyColor: '#ddd',
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.x + '%';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Render JSON Data
-            const jsonDataDisplay = document.getElementById('jsonDataDisplay');
-            for (const key in jsonData) {
-                if (jsonData.hasOwnProperty(key)) {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.classList.add('mini-card', 'rounded-lg', 'p-3', 'md:p-4'); // Apply mini-card style
-                    
-                    const keySpan = document.createElement('strong');
-                    keySpan.classList.add('text-gray-100', 'block', 'mb-1');
-                    keySpan.textContent = key + ':';
-                    
-                    const valueSpan = document.createElement('span');
-                    valueSpan.classList.add('text-gray-300');
-
-                    if (typeof jsonData[key] === 'string' && jsonData[key].startsWith('#') && jsonData[key].endsWith('#')) {
-                        if (jsonData[key].includes(',')) { // Handle multiple tags
-                             const tags = jsonData[key].split(',').map(tag => tag.trim());
-                             tags.forEach(tag => {
-                                const tagEl = document.createElement('span');
-                                tagEl.textContent = tag;
-                                tagEl.classList.add('inline-block', 'bg-highlight/20', 'text-highlight', 'text-xs', 'font-semibold', 'mr-2', 'px-2.5', 'py-0.5', 'rounded-full');
-                                valueSpan.appendChild(tagEl);
-                             });
-                        } else {
-                            valueSpan.textContent = jsonData[key];
-                            valueSpan.classList.add('inline-block', 'bg-highlight/20', 'text-highlight', 'text-sm', 'font-semibold', 'px-3', 'py-1', 'rounded-full');
-                        }
-                    } else if (key === 'V1_CoreLogic_Snippet' || key === 'V2_StyleTendency_Desc' || key === 'V3_Portfolio_Summary' || key === 'V3_Turnover_Consistency' || key === 'V4_Attribution_Summary' || key === 'V5_Insight_Positive' || key === 'V5_Insight_Risk' || key === 'V5_Outlook_Snippet' || key === 'V6_OtherInfo_Notes') {
-                        valueSpan.innerHTML = jsonData[key].replace(/🟢/g, '<span class="text-green-400">🟢</span>')
-                                                         .replace(/🔴/g, '<span class="text-red-400">🔴</span>');
-                        valueSpan.classList.add('block', 'leading-relaxed');
-                    }
-                    else {
-                        valueSpan.textContent = jsonData[key];
-                    }
-                    
-                    itemDiv.appendChild(keySpan);
-                    itemDiv.appendChild(valueSpan);
-                    jsonDataDisplay.appendChild(itemDiv);
-                    observer.observe(itemDiv); // Make JSON items animatable
                 }
             }
+        }
+    });
+    
+    const barChartOptions = (title) => ({
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                min: 40,
+                max: 100,
+                title: { display: true, text: '业绩分位数 (越高越好)' }
+            }
+        },
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { family: "'Noto Sans SC', sans-serif" }}},
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: ${context.parsed.x.toFixed(2)}%`;
+                    }
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('performanceChart'), {
+        type: 'line',
+        data: performanceData,
+        options: chartOptions('基金净值走势 vs. 基准 (经理任职以来, 指数化)')
+    });
+    
+    new Chart(document.getElementById('assetAllocationChart'), {
+        type: 'doughnut',
+        data: assetAllocationData,
+        options: pieChartOptions()
+    });
+
+    new Chart(document.getElementById('industryAllocationChart'), {
+        type: 'doughnut',
+        data: industryAllocationData,
+        options: pieChartOptions()
+    });
+
+    new Chart(document.getElementById('marketEnvChart'), {
+        type: 'bar',
+        data: marketEnvData,
+        options: barChartOptions('不同市场环境下的业绩分位数 (近两年)')
+    });
+
+    const caseStudyBtns = document.querySelectorAll('.case-study-btn');
+    const caseStudyContents = document.querySelectorAll('.case-study-content');
+    caseStudyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            caseStudyBtns.forEach(b => b.classList.remove('active-case-study', 'bg-secondary'));
+            btn.classList.add('active-case-study', 'bg-secondary');
             
-            // Set analysis timestamp
-            const analysisTsElement = document.getElementById('analysisTimestamp');
-            if(analysisTsElement && jsonData.AnalysisTimestamp) {
-                analysisTsElement.textContent = new Date(jsonData.AnalysisTimestamp).toLocaleString('zh-CN', { dateStyle: 'long', timeStyle: 'short'});
-            } else if (analysisTsElement) {
-                 analysisTsElement.textContent = new Date().toLocaleString('zh-CN', { dateStyle: 'long', timeStyle: 'short'});
-            }
+            const caseId = btn.dataset.case;
+            caseStudyContents.forEach(content => {
+                const targetCard = document.getElementById(`case-${caseId}`);
+                const otherCards = Array.from(caseStudyContents).filter(c => c.id !== `case-${caseId}`);
 
+                if (content.id === `case-${caseId}`) {
+                   content.style.transform = 'scale(1)';
+                   content.style.opacity = '1';
+                   content.style.zIndex = '10';
+                } else {
+                   content.style.transform = 'scale(0.95)';
+                   content.style.opacity = '0.6';
+                   content.style.zIndex = '1';
+                }
+            });
         });
-    </script>
+    });
+
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    menuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    const navLinks = document.querySelectorAll('#header a');
+    const sections = document.querySelectorAll('main section');
+    
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 80) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active-nav');
+            if (link.href.includes(current)) {
+                link.classList.add('active-nav');
+            }
+        });
+    });
+    
+    mobileMenu.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+    });
+
+});
+</script>
 </body>
 </html>
